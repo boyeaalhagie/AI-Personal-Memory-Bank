@@ -30,7 +30,7 @@ services:
     value: ${db.PORT}
   - key: DB_NAME
     scope: RUN_TIME
-    value: ${db.DATABASE}
+    value: defaultdb
   - key: DB_USER
     scope: RUN_TIME
     value: ${db.USERNAME}
@@ -68,7 +68,7 @@ services:
     value: ${db.PORT}
   - key: DB_NAME
     scope: RUN_TIME
-    value: ${db.DATABASE}
+    value: defaultdb
   - key: DB_USER
     scope: RUN_TIME
     value: ${db.USERNAME}
@@ -107,7 +107,7 @@ services:
     value: ${db.PORT}
   - key: DB_NAME
     scope: RUN_TIME
-    value: ${db.DATABASE}
+    value: defaultdb
   - key: DB_USER
     scope: RUN_TIME
     value: ${db.USERNAME}
@@ -142,7 +142,7 @@ services:
     value: ${db.PORT}
   - key: DB_NAME
     scope: RUN_TIME
-    value: ${db.DATABASE}
+    value: defaultdb
   - key: DB_USER
     scope: RUN_TIME
     value: ${db.USERNAME}
@@ -177,7 +177,7 @@ services:
     value: ${db.PORT}
   - key: DB_NAME
     scope: RUN_TIME
-    value: ${db.DATABASE}
+    value: defaultdb
   - key: DB_USER
     scope: RUN_TIME
     value: ${db.USERNAME}
