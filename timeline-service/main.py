@@ -2,6 +2,7 @@
 Timeline Service
 Aggregates photos by emotion and time period
 """
+import os
 import sys
 from datetime import datetime
 from typing import Optional

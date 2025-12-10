@@ -2,6 +2,7 @@
 Emotion Search Service
 Search photos by emotion, date range, and user
 """
+import os
 import sys
 from datetime import datetime
 from typing import Optional
