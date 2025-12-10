@@ -349,28 +349,41 @@ async def tag_photo(request: TagPhotoRequest):
         emotions_json = json.dumps(emotions_list)
         emotion_emojis_json = json.dumps(emotion_emojis)
         
-        # Update database - store primary emotion in emotion field, full list as JSON, and emojis
-        with get_db_cursor() as cursor:
-            # First, try to add emotions_json and emotion_emojis_json columns if they don't exist
-            try:
-                cursor.execute("ALTER TABLE photos ADD COLUMN IF NOT EXISTS emotions_json TEXT")
-            except Exception as e:
-                print(f"Note: Could not add emotions_json column (may already exist): {e}")
-            
-            try:
-                cursor.execute("ALTER TABLE photos ADD COLUMN IF NOT EXISTS emotion_emojis_json TEXT")
-            except Exception as e:
-                print(f"Note: Could not add emotion_emojis_json column (may already exist): {e}")
-            
-            # Update with both primary emotion, full emotions list, and emojis
-            cursor.execute(
-                """
-                UPDATE photos
-                SET caption = %s, emotion = %s, emotion_confidence = %s, emotions_json = %s, emotion_emojis_json = %s
-                WHERE id = %s
-                """,
-                (caption, primary_emotion, confidence, emotions_json, emotion_emojis_json, request.photo_id)
-            )
+        # Update database - try full update first, fallback if columns don't exist
+        try:
+            with get_db_cursor() as cursor:
+                # Try full update with all columns
+                cursor.execute(
+                    """
+                    UPDATE photos
+                    SET caption = %s, emotion = %s, emotion_confidence = %s, emotions_json = %s, emotion_emojis_json = %s
+                    WHERE id = %s
+                    """,
+                    (caption, primary_emotion, confidence, emotions_json, emotion_emojis_json, request.photo_id)
+                )
+        except Exception as e:
+            # If full update fails (columns don't exist), try without JSON columns
+            error_msg = str(e).lower()
+            if 'emotions_json' in error_msg or 'emotion_emojis_json' in error_msg or 'column' in error_msg:
+                print(f"Note: JSON columns not available, using fallback update: {e}")
+                try:
+                    with get_db_cursor() as cursor:
+                        # Fallback: update only basic columns
+                        cursor.execute(
+                            """
+                            UPDATE photos
+                            SET caption = %s, emotion = %s, emotion_confidence = %s
+                            WHERE id = %s
+                            """,
+                            (caption, primary_emotion, confidence, request.photo_id)
+                        )
+                except Exception as e2:
+                    print(f"Error updating photo in database: {e2}")
+                    raise HTTPException(status_code=500, detail=f"Error updating photo in database: {str(e2)}")
+            else:
+                # Some other error, re-raise it
+                print(f"Error updating photo in database: {e}")
+                raise HTTPException(status_code=500, detail=f"Error updating photo in database: {str(e)}")
         
         return TagPhotoResponse(
             emotion=primary_emotion,
