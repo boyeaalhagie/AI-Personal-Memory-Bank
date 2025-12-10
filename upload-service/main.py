@@ -51,7 +51,7 @@ async def init_db():
             db_name, user = cursor.fetchone()
             print(f"✓ Connected to database: {db_name} as user: {user}")
             
-            # Check if tables exist
+            # Check if tables exist (read-only)
             cursor.execute("""
                 SELECT table_name 
                 FROM information_schema.tables 
@@ -60,56 +60,7 @@ async def init_db():
             """)
             existing_tables = cursor.fetchall()
             print(f"   Existing tables: {[t[0] for t in existing_tables]}")
-            
-            # Grant permissions on public schema (may fail if user doesn't have permission, that's ok)
-            try:
-                cursor.execute("GRANT ALL ON SCHEMA public TO CURRENT_USER")
-                cursor.execute("GRANT CREATE ON SCHEMA public TO CURRENT_USER")
-            except Exception:
-                pass  # User may not have permission to grant, that's ok
-            
-            # Create photos table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS photos (
-                    id SERIAL PRIMARY KEY,
-                    user_id VARCHAR(255) NOT NULL,
-                    file_path TEXT NOT NULL,
-                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    caption TEXT,
-                    emotion VARCHAR(50),
-                    emotion_confidence FLOAT,
-                    emotions_json TEXT,
-                    emotion_emojis_json TEXT
-                )
-            """)
-            
-            # Create usage_logs table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS usage_logs (
-                    id SERIAL PRIMARY KEY,
-                    service_name VARCHAR(100) NOT NULL,
-                    endpoint VARCHAR(255) NOT NULL,
-                    user_id VARCHAR(255),
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create indexes
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_user_id ON photos(user_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_emotion ON photos(emotion)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_uploaded_at ON photos(uploaded_at)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_logs_service ON usage_logs(service_name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_logs_timestamp ON usage_logs(timestamp)")
-            
-            # Add emotion_emojis_json column if it doesn't exist
-            try:
-                cursor.execute("ALTER TABLE photos ADD COLUMN emotion_emojis_json TEXT")
-            except Exception:
-                pass  # Column already exists
-            
-            conn.commit()
             cursor.close()
-            print("✓ Database schema initialized")
     except Exception as e:
         print(f"⚠ Warning: Could not initialize database schema: {e}")
         print("⚠ You may need to manually run the schema SQL in the DigitalOcean database console")
@@ -231,80 +182,77 @@ async def get_photos(user_id: str = Query(..., description="User ID")):
     """
     log_usage("upload-service", "GET /photos", user_id)
     
+    import json
+    
+    # Try full query first, then fallback to simpler query if columns don't exist
     try:
         with get_db_cursor() as cursor:
-            # First, try to add emotions_json column if it doesn't exist
-            try:
-                cursor.execute("ALTER TABLE photos ADD COLUMN IF NOT EXISTS emotions_json TEXT")
-            except Exception as e:
-                print(f"Note: Could not add emotions_json column (may already exist): {e}")
-            
-            # Try to select with emotions_json and emotion_emojis_json, fallback if columns don't exist
-            try:
+            cursor.execute(
+                """
+                SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence, emotions_json, emotion_emojis_json
+                FROM photos
+                WHERE user_id = %s
+                ORDER BY uploaded_at DESC
+                """,
+                (user_id,)
+            )
+            photos = cursor.fetchall()
+    except Exception as e:
+        # If full query fails (columns don't exist), try simpler query
+        print(f"Note: Full query failed, trying fallback: {e}")
+        try:
+            with get_db_cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence, emotions_json, emotion_emojis_json
+                    SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence, emotions_json
                     FROM photos
                     WHERE user_id = %s
                     ORDER BY uploaded_at DESC
                     """,
                     (user_id,)
                 )
-            except Exception as e:
-                # Fallback if columns don't exist yet
-                print(f"Note: Some columns not found, using fallback query: {e}")
-                try:
-                    cursor.execute(
-                        """
-                        SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence, emotions_json
-                        FROM photos
-                        WHERE user_id = %s
-                        ORDER BY uploaded_at DESC
-                        """,
-                        (user_id,)
-                    )
-                except Exception as e2:
-                    # Final fallback
-                    print(f"Note: Using minimal query: {e2}")
-                    cursor.execute(
-                        """
-                        SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence
-                        FROM photos
-                        WHERE user_id = %s
-                        ORDER BY uploaded_at DESC
-                        """,
-                        (user_id,)
-                    )
-            
-            photos = cursor.fetchall()
-            # Parse emotions_json if it exists
-            import json
-            result_photos = []
-            for photo in photos:
-                photo_dict = dict(photo)
-                # Parse emotions_json if present
-                if photo_dict.get('emotions_json'):
-                    try:
-                        photo_dict['emotions'] = json.loads(photo_dict['emotions_json'])
-                    except:
-                        photo_dict['emotions'] = [photo_dict.get('emotion', 'neutral')] if photo_dict.get('emotion') else []
-                else:
-                    # Backward compatibility: if no emotions_json, use emotion field
-                    photo_dict['emotions'] = [photo_dict.get('emotion')] if photo_dict.get('emotion') else []
-                
-                # Parse emotion_emojis_json if present
-                if photo_dict.get('emotion_emojis_json'):
-                    try:
-                        photo_dict['emotion_emojis'] = json.loads(photo_dict['emotion_emojis_json'])
-                    except:
-                        photo_dict['emotion_emojis'] = {}
-                else:
-                    photo_dict['emotion_emojis'] = {}
-                
-                result_photos.append(photo_dict)
-            return {"photos": result_photos}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching photos: {str(e)}")
+                photos = cursor.fetchall()
+        except Exception as e2:
+            # Final fallback to minimal columns
+            print(f"Note: Fallback query failed, using minimal query: {e2}")
+            with get_db_cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, user_id, file_path, uploaded_at, caption, emotion, emotion_confidence
+                    FROM photos
+                    WHERE user_id = %s
+                    ORDER BY uploaded_at DESC
+                    """,
+                    (user_id,)
+                )
+                photos = cursor.fetchall()
+    
+    # Parse emotions_json if it exists
+    result_photos = []
+    for photo in photos:
+        photo_dict = dict(photo)
+        # Parse emotions_json if present
+        if photo_dict.get('emotions_json'):
+            try:
+                photo_dict['emotions'] = json.loads(photo_dict['emotions_json'])
+            except:
+                photo_dict['emotions'] = [photo_dict.get('emotion', 'neutral')] if photo_dict.get('emotion') else []
+        else:
+            # Backward compatibility: if no emotions_json, use emotion field
+            photo_dict['emotions'] = [photo_dict.get('emotion')] if photo_dict.get('emotion') else []
+        
+        # Parse emotion_emojis_json if present
+        if photo_dict.get('emotion_emojis_json'):
+            try:
+                photo_dict['emotion_emojis'] = json.loads(photo_dict['emotion_emojis_json'])
+            except:
+                photo_dict['emotion_emojis'] = {}
+        else:
+            photo_dict['emotion_emojis'] = {}
+        
+        result_photos.append(photo_dict)
+    
+    return {"photos": result_photos}
 
 
 @app.get("/uploads/{filename:path}")
