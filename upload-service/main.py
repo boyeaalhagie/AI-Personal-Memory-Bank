@@ -38,6 +38,13 @@ async def init_db():
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
+            # Grant permissions on public schema (may fail if user doesn't have permission, that's ok)
+            try:
+                cursor.execute("GRANT ALL ON SCHEMA public TO CURRENT_USER")
+                cursor.execute("GRANT CREATE ON SCHEMA public TO CURRENT_USER")
+            except Exception:
+                pass  # User may not have permission to grant, that's ok
+            
             # Create photos table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS photos (
@@ -82,6 +89,7 @@ async def init_db():
             print("✓ Database schema initialized")
     except Exception as e:
         print(f"⚠ Warning: Could not initialize database schema: {e}")
+        print("⚠ You may need to manually run the schema SQL in the DigitalOcean database console")
         # Don't fail startup if schema already exists
 
 # Add CORS middleware
