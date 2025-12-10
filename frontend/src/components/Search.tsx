@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { searchService, uploadService } from '../services/api';
+import { searchService, uploadService, getImageUrl } from '../services/api';
 import type { Photo } from '../types';
 import { getEmotionIcon } from '../utils/emotions';
 
@@ -71,9 +71,6 @@ export function Search({ userId }: SearchProps) {
     setError(null);
   };
 
-  const getImageUrl = (filePath: string) => {
-    return `http://localhost:8001/${filePath}`;
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 space-y-4">

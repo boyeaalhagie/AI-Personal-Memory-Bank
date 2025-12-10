@@ -217,3 +217,10 @@ export const checkHealth = async (service: keyof typeof API_BASE_URLS): Promise<
   }
 };
 
+// Helper function to get image URL
+export const getImageUrl = (filePath: string): string => {
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+  return `${API_BASE_URLS.upload}/${cleanPath}`;
+};
+

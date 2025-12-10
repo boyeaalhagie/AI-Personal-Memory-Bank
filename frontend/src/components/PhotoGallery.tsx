@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { uploadService } from '../services/api';
+import { uploadService, getImageUrl } from '../services/api';
 import type { Photo } from '../types';
 import { getEmotionEmoji, getEmotionIcon } from '../utils/emotions';
 
@@ -74,9 +74,6 @@ export function PhotoGallery({ userId, refreshTrigger, searchResults, searchQuer
     }
   };
 
-  const getImageUrl = (filePath: string) => {
-    return `http://localhost:8001/${filePath}`;
-  };
 
   const handleDelete = async (photoId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering card click

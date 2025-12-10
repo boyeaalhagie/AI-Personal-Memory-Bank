@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { uploadService } from '../services/api';
+import { uploadService, getImageUrl } from '../services/api';
 import type { Photo } from '../types';
 import Stack from './Stack';
 
@@ -86,9 +86,6 @@ export function Collage({ userId }: CollageProps) {
     return groups;
   }, [photos]);
 
-  const getImageUrl = (filePath: string) => {
-    return `http://localhost:8001/${filePath}`;
-  };
 
   if (loading) {
     return (
