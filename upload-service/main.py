@@ -34,9 +34,32 @@ app = FastAPI(title="Photo Upload Service")
 @app.on_event("startup")
 async def init_db():
     """Initialize database schema if tables don't exist"""
+    import os
+    print(f"🔍 Database connection info:")
+    print(f"   DB_HOST: {os.getenv('DB_HOST', 'NOT SET')}")
+    print(f"   DB_PORT: {os.getenv('DB_PORT', 'NOT SET')}")
+    print(f"   DB_NAME: {os.getenv('DB_NAME', 'NOT SET')}")
+    print(f"   DB_USER: {os.getenv('DB_USER', 'NOT SET')}")
+    print(f"   DB_PASSWORD: {'SET' if os.getenv('DB_PASSWORD') else 'NOT SET'}")
+    
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            
+            # Check what database we're connected to
+            cursor.execute("SELECT current_database(), current_user")
+            db_name, user = cursor.fetchone()
+            print(f"✓ Connected to database: {db_name} as user: {user}")
+            
+            # Check if tables exist
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_type = 'BASE TABLE'
+            """)
+            existing_tables = cursor.fetchall()
+            print(f"   Existing tables: {[t[0] for t in existing_tables]}")
             
             # Grant permissions on public schema (may fail if user doesn't have permission, that's ok)
             try:
