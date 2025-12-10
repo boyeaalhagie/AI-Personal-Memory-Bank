@@ -1,0 +1,235 @@
+name: ai-memory-bank
+region: nyc
+
+# Database
+databases:
+- name: db
+  engine: PG
+  version: "15"
+  production: true
+
+# Services
+services:
+# Upload Service
+- name: upload-service
+  github:
+    repo: boyeaalhagie/AI-Personal-Memory-Bank
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: upload-service/Dockerfile
+  dockerfile_context: .
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: DB_HOST
+    scope: RUN_TIME
+    value: ${db.HOSTNAME}
+  - key: DB_PORT
+    scope: RUN_TIME
+    value: ${db.PORT}
+  - key: DB_NAME
+    scope: RUN_TIME
+    value: ${db.DATABASE}
+  - key: DB_USER
+    scope: RUN_TIME
+    value: ${db.USERNAME}
+  - key: DB_PASSWORD
+    scope: RUN_TIME
+    value: ${db.PASSWORD}
+  - key: EMOTION_SERVICE_URL
+    scope: RUN_TIME
+    value: ${emotion-service.PUBLIC_URL}
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Emotion Service
+- name: emotion-service
+  github:
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: emotion-service/Dockerfile
+  dockerfile_context: .
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: basic-xs
+  envs:
+  - key: DB_HOST
+    scope: RUN_TIME
+    value: ${db.HOSTNAME}
+  - key: DB_PORT
+    scope: RUN_TIME
+    value: ${db.PORT}
+  - key: DB_NAME
+    scope: RUN_TIME
+    value: ${db.DATABASE}
+  - key: DB_USER
+    scope: RUN_TIME
+    value: ${db.USERNAME}
+  - key: DB_PASSWORD
+    scope: RUN_TIME
+    value: ${db.PASSWORD}
+  - key: OPENAI_API_KEY
+    scope: RUN_TIME
+    value: ${OPENAI_API_KEY}
+    type: SECRET
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Timeline Service
+- name: timeline-service
+  github:
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: timeline-service/Dockerfile
+  dockerfile_context: .
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: DB_HOST
+    scope: RUN_TIME
+    value: ${db.HOSTNAME}
+  - key: DB_PORT
+    scope: RUN_TIME
+    value: ${db.PORT}
+  - key: DB_NAME
+    scope: RUN_TIME
+    value: ${db.DATABASE}
+  - key: DB_USER
+    scope: RUN_TIME
+    value: ${db.USERNAME}
+  - key: DB_PASSWORD
+    scope: RUN_TIME
+    value: ${db.PASSWORD}
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Search Service
+- name: search-service
+  github:
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: search-service/Dockerfile
+  dockerfile_context: .
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: DB_HOST
+    scope: RUN_TIME
+    value: ${db.HOSTNAME}
+  - key: DB_PORT
+    scope: RUN_TIME
+    value: ${db.PORT}
+  - key: DB_NAME
+    scope: RUN_TIME
+    value: ${db.DATABASE}
+  - key: DB_USER
+    scope: RUN_TIME
+    value: ${db.USERNAME}
+  - key: DB_PASSWORD
+    scope: RUN_TIME
+    value: ${db.PASSWORD}
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Admin Service
+- name: admin-service
+  github:
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: admin-service/Dockerfile
+  dockerfile_context: .
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: DB_HOST
+    scope: RUN_TIME
+    value: ${db.HOSTNAME}
+  - key: DB_PORT
+    scope: RUN_TIME
+    value: ${db.PORT}
+  - key: DB_NAME
+    scope: RUN_TIME
+    value: ${db.DATABASE}
+  - key: DB_USER
+    scope: RUN_TIME
+    value: ${db.USERNAME}
+  - key: DB_PASSWORD
+    scope: RUN_TIME
+    value: ${db.PASSWORD}
+  - key: JWT_SECRET
+    scope: RUN_TIME
+    value: ${JWT_SECRET}
+    type: SECRET
+  - key: ADMIN_USERNAME
+    scope: RUN_TIME
+    value: ${ADMIN_USERNAME}
+  - key: ADMIN_PASSWORD
+    scope: RUN_TIME
+    value: ${ADMIN_PASSWORD}
+    type: SECRET
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Frontend
+- name: frontend
+  github:
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: frontend/Dockerfile
+  dockerfile_context: .
+  http_port: 80
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  routes:
+  - path: /
+  envs:
+  - key: VITE_UPLOAD_SERVICE_URL
+    scope: BUILD_TIME
+    value: ${upload-service.PUBLIC_URL}
+  - key: VITE_EMOTION_SERVICE_URL
+    scope: BUILD_TIME
+    value: ${emotion-service.PUBLIC_URL}
+  - key: VITE_TIMELINE_SERVICE_URL
+    scope: BUILD_TIME
+    value: ${timeline-service.PUBLIC_URL}
+  - key: VITE_SEARCH_SERVICE_URL
+    scope: BUILD_TIME
+    value: ${search-service.PUBLIC_URL}
+  - key: VITE_ADMIN_SERVICE_URL
+    scope: BUILD_TIME
+    value: ${admin-service.PUBLIC_URL}
+

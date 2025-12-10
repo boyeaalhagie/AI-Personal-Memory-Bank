@@ -1,0 +1,112 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: memorybank
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  upload-service:
+    build:
+      context: .
+      dockerfile: upload-service/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: memorybank
+      DB_USER: user
+      DB_PASSWORD: pass
+      EMOTION_SERVICE_URL: http://host.docker.internal:8002
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+
+  emotion-service:
+    build:
+      context: .
+      dockerfile: emotion-service/Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: memorybank
+      DB_USER: user
+      DB_PASSWORD: pass
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+
+  timeline-service:
+    build:
+      context: .
+      dockerfile: timeline-service/Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: memorybank
+      DB_USER: user
+      DB_PASSWORD: pass
+    depends_on:
+      db:
+        condition: service_healthy
+
+  search-service:
+    build:
+      context: .
+      dockerfile: search-service/Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: memorybank
+      DB_USER: user
+      DB_PASSWORD: pass
+    depends_on:
+      db:
+        condition: service_healthy
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: admin-service/Dockerfile
+    ports:
+      - "8005:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: memorybank
+      DB_USER: user
+      DB_PASSWORD: pass
+      JWT_SECRET: your-secret-key-change-in-production
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  uploads_data:
+  model_cache:
+
