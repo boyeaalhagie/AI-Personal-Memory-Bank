@@ -26,9 +26,63 @@ for path in shared_paths:
         sys.path.insert(0, path)
         break
 
-from db_utils import get_db_cursor, log_usage
+from db_utils import get_db_cursor, log_usage, get_db_connection
 
 app = FastAPI(title="Photo Upload Service")
+
+# Initialize database schema on startup
+@app.on_event("startup")
+async def init_db():
+    """Initialize database schema if tables don't exist"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Create photos table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS photos (
+                    id SERIAL PRIMARY KEY,
+                    user_id VARCHAR(255) NOT NULL,
+                    file_path TEXT NOT NULL,
+                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    caption TEXT,
+                    emotion VARCHAR(50),
+                    emotion_confidence FLOAT,
+                    emotions_json TEXT,
+                    emotion_emojis_json TEXT
+                )
+            """)
+            
+            # Create usage_logs table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usage_logs (
+                    id SERIAL PRIMARY KEY,
+                    service_name VARCHAR(100) NOT NULL,
+                    endpoint VARCHAR(255) NOT NULL,
+                    user_id VARCHAR(255),
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_user_id ON photos(user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_emotion ON photos(emotion)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_photos_uploaded_at ON photos(uploaded_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_logs_service ON usage_logs(service_name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_logs_timestamp ON usage_logs(timestamp)")
+            
+            # Add emotion_emojis_json column if it doesn't exist
+            try:
+                cursor.execute("ALTER TABLE photos ADD COLUMN emotion_emojis_json TEXT")
+            except Exception:
+                pass  # Column already exists
+            
+            conn.commit()
+            cursor.close()
+            print("✓ Database schema initialized")
+    except Exception as e:
+        print(f"⚠ Warning: Could not initialize database schema: {e}")
+        # Don't fail startup if schema already exists
 
 # Add CORS middleware
 app.add_middleware(
