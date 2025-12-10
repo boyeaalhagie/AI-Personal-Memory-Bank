@@ -20,7 +20,13 @@ DB_CONFIG = {
 @contextmanager
 def get_db_connection():
     """Context manager for database connections"""
-    conn = psycopg2.connect(**DB_CONFIG)
+    # Add SSL mode for DigitalOcean managed databases
+    conn_params = DB_CONFIG.copy()
+    # DigitalOcean databases require SSL
+    if 'ondigitalocean.com' in conn_params.get('host', ''):
+        conn_params['sslmode'] = 'require'
+    
+    conn = psycopg2.connect(**conn_params)
     try:
         yield conn
         conn.commit()
