@@ -106,31 +106,38 @@ def analyze_image_with_openai(image_path: str) -> tuple[str, str, list[str], dic
         base64_image = encode_image(image_path)
         
         # Prepare the prompt - asking for comprehensive emotion analysis
-        prompt = """Analyze this image comprehensively and identify ALL emotions present. Look at:
-- Facial expressions of people
-- Body language and postures
-- Scene atmosphere and mood
-- Color tones and lighting
-- Context and setting
+        prompt = """Analyze this image and identify the emotions present. Look at:
+- Facial expressions of people (smiles, frowns, neutral expressions)
+- Body language and postures (relaxed, tense, energetic, still)
+- Scene atmosphere and mood (bright/cheerful, dark/somber, calm, chaotic)
+- Color tones and lighting (warm, cool, vibrant, muted)
+- Context and setting (celebration, work, nature, indoor, outdoor)
 - Overall emotional resonance
 
 Provide:
 1. A brief, descriptive caption (1-2 sentences) describing what's in the image
-2. A comprehensive list of ALL emotions you detect (can be multiple emotions, be specific)
-   Examples: joyful, melancholic, serene, anxious, euphoric, nostalgic, contemplative, energetic, peaceful, tense, playful, somber, romantic, dramatic, etc.
-   Don't restrict yourself - use any emotion words that accurately describe what you see
+2. A list of emotions you detect (1-3 emotions, be specific and accurate)
+   Common emotions: happy, joyful, sad, calm, peaceful, excited, energetic, stressed, anxious, neutral, content, relaxed, playful, nostalgic, romantic, etc.
+   IMPORTANT: Only use "contemplative" if someone is clearly in deep thought, reflection, or meditation. Do NOT use it for:
+   - Regular photos of people looking at the camera
+   - Casual poses or everyday moments
+   - Photos where the primary emotion is clearly something else (happy, sad, excited, etc.)
+   - Neutral or ambiguous expressions - use "neutral" instead
 3. For EACH emotion you detect, provide the most appropriate emoji that represents that emotion
 4. The PRIMARY/dominant emotion from your list (the most prominent one)
 5. A confidence score (0.0 to 1.0) for the primary emotion classification
 
 Respond in this exact format:
 CAPTION: [your caption here]
-EMOTIONS: [comma-separated list of all detected emotions, e.g., "joyful, energetic, carefree, warm"]
-EMOTION_EMOJIS: [comma-separated list of emojis corresponding to each emotion in the same order, e.g., "😄,⚡,😊,❤️"]
+EMOTIONS: [comma-separated list of detected emotions, e.g., "happy, energetic" or "calm, peaceful"]
+EMOTION_EMOJIS: [comma-separated list of emojis corresponding to each emotion in the same order, e.g., "😊,⚡"]
 PRIMARY_EMOTION: [the most prominent emotion from your list]
 CONFIDENCE: [number between 0.0 and 1.0]
 
-Important: The number of emojis must match the number of emotions, and they must be in the same order."""
+Important: 
+- The number of emojis must match the number of emotions, and they must be in the same order.
+- Be conservative with "contemplative" - only use it when deep thought or reflection is clearly evident.
+- Prefer more common emotions (happy, sad, calm, excited, neutral) when uncertain."""
 
         # Call OpenAI Vision API
         response = openai_client.chat.completions.create(
@@ -153,7 +160,7 @@ Important: The number of emojis must match the number of emotions, and they must
                 }
             ],
             max_tokens=500,
-            temperature=0.4
+            temperature=0.3
         )
         
         # Parse response
