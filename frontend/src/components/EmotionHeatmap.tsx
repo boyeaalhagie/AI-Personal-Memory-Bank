@@ -240,11 +240,6 @@ export function EmotionHeatmap({ userId }: EmotionHeatmapProps) {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-  // Get max count for reference
-  const maxCount = useMemo(() => {
-    return Math.max(...Object.values(heatmapData), 1);
-  }, [heatmapData]);
-
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">

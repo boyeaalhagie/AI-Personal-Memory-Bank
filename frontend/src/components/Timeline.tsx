@@ -89,16 +89,6 @@ export function Timeline({ userId }: TimelineProps) {
     return (value / total) * 100;
   };
 
-  // Get all unique emotions across all periods for consistent colors
-  const getAllEmotions = () => {
-    const emotionSet = new Set<string>();
-    timelineData.forEach(period => {
-      const emotions = getEmotionsFromPeriod(period);
-      Object.keys(emotions).forEach(emotion => emotionSet.add(emotion));
-    });
-    return Array.from(emotionSet).sort();
-  };
-
   // Get color for an emotion (use standard colors if available, otherwise generate)
   const getEmotionColor = (emotion: string): string => {
     const emotionLower = emotion.toLowerCase();

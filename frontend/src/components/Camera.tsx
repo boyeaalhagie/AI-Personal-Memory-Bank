@@ -11,7 +11,6 @@ export function Camera({ userId, onCaptureSuccess, onClose }: CameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -67,7 +66,6 @@ export function Camera({ userId, onCaptureSuccess, onClose }: CameraProps) {
         return;
       }
 
-      setIsCapturing(true);
       setIsUploading(true);
 
       try {
@@ -83,12 +81,10 @@ export function Camera({ userId, onCaptureSuccess, onClose }: CameraProps) {
         onCaptureSuccess();
         
         // Reset state
-        setIsCapturing(false);
         setIsUploading(false);
       } catch (err) {
         console.error('Error uploading photo:', err);
         setError(err instanceof Error ? err.message : 'Failed to upload photo');
-        setIsCapturing(false);
         setIsUploading(false);
       }
     }, 'image/jpeg', 0.95);
