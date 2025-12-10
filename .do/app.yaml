@@ -15,7 +15,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: upload-service/Dockerfile
   dockerfile_context: .
   http_port: 8000
@@ -53,7 +53,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: emotion-service/Dockerfile
   dockerfile_context: .
   http_port: 8000
@@ -92,7 +92,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: timeline-service/Dockerfile
   dockerfile_context: .
   http_port: 8000
@@ -127,7 +127,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: search-service/Dockerfile
   dockerfile_context: .
   http_port: 8000
@@ -162,7 +162,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: admin-service/Dockerfile
   dockerfile_context: .
   http_port: 8000
@@ -208,7 +208,7 @@ services:
   github:
     repo: boyeaalhagie/AI-Personal-Memory-Bank
     branch: main
-    deploy_on_push: true
+    deploy_on_push: false
   dockerfile_path: frontend/Dockerfile
   dockerfile_context: .
   http_port: 80
